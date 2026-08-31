@@ -63,6 +63,20 @@ namespace HSMessage
             Releasing.Clear();
         }
 
+        /// <summary>
+        /// Keep HSA suppressed until this key is physically let go.
+        ///
+        /// Needed whenever a key closes something of ours. We act on key-down,
+        /// HSA acts on key-up, so without this the Enter that sends a reply
+        /// would still be pending when control returns, and HSA would confirm
+        /// whatever was focused behind the reply box. Escape would open the game
+        /// menu the same way.
+        /// </summary>
+        internal static void SuppressUntilReleased(KeyCode key)
+        {
+            Consumed.Add(key);
+        }
+
         internal static void Tick()
         {
             // Deferred by one frame, so HSA never observes the key-up of

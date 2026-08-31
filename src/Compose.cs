@@ -147,11 +147,14 @@ namespace HSMessage
             switch (e.keyCode)
             {
                 case KeyCode.Escape:
-                    Cancel(); e.Use(); return;
+                    Cancel(KeyCode.Escape); e.Use(); return;
 
                 case KeyCode.Return:
                 case KeyCode.KeypadEnter:
-                    Send(); e.Use(); return;
+                    // Both are passed on because HSA treats them as one key:
+                    // its CONFIRM binding accepts a keypad Enter release while
+                    // matching on Return.
+                    Send(KeyCode.Return, KeyCode.KeypadEnter); e.Use(); return;
 
                 case KeyCode.F2:
                     ReadBack(); e.Use(); return;
@@ -220,21 +223,21 @@ namespace HSMessage
 
         // ------------------------------------------------------------ finish
 
-        private static void Cancel()
+        private static void Cancel(params KeyCode[] terminators)
         {
             Buffer.Length = 0;
-            End();
+            End(terminators);
             Speech.Say("Cancelled.");
         }
 
-        private static void Send()
+        private static void Send(params KeyCode[] terminators)
         {
             var text = Buffer.ToString().Trim();
 
             if (text.Length == 0)
             {
                 Buffer.Length = 0;
-                End();
+                End(terminators);
                 Speech.Say("Nothing to send.");
                 return;
             }
@@ -243,7 +246,7 @@ namespace HSMessage
             var player = _peerPlayer;
 
             Buffer.Length = 0;
-            End();
+            End(terminators);
 
             bool sent = false;
             try
@@ -263,7 +266,13 @@ namespace HSMessage
             Speech.Say(sent ? "Sent to " + peer + "." : "Could not send to " + peer + ".");
         }
 
-        private static void End()
+        /// <summary>
+        /// <paramref name="terminators"/> are the keys that closed the box. They
+        /// are still physically down at this point, and HSA acts on key-up, so
+        /// they have to stay suppressed or HSA will act on them the moment we
+        /// hand control back.
+        /// </summary>
+        private static void End(params KeyCode[] terminators)
         {
             Active = false;
             _peerName = null;
@@ -274,6 +283,9 @@ namespace HSMessage
             // Whatever we were holding open, let it go. Handing control back to
             // HSA in a bad state makes the game unplayable.
             AltLayer.ResetConsumed();
+
+            if (terminators == null) return;
+            foreach (var key in terminators) AltLayer.SuppressUntilReleased(key);
         }
 
         /// <summary>
@@ -287,7 +299,7 @@ namespace HSMessage
         internal static void UpdateFallback()
         {
             if (!Active) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) Cancel();
+            if (Input.GetKeyDown(KeyCode.Escape)) Cancel(KeyCode.Escape);
         }
     }
 }
