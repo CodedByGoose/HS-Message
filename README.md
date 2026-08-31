@@ -6,10 +6,31 @@ moment they are spoken.
 Built for Battlegrounds, where a message arriving mid combat is currently
 impossible to read. HS Message keeps every whisper you receive, files it by
 sender, and puts the whole lot on an Alt key layer. It also lets you reply
-without opening anything.
+without opening anything. Messages are still spoken as they arrive, exactly
+as they are now; the plugin only keeps a copy.
 
 It sits on top of [Hearthstone Access](https://hearthstoneaccess.com) and needs
 it to be installed.
+
+## Not affiliated with Hearthstone Access
+
+While HS Message runs on top of Hearthstone Access, it is a separate downstream
+project. It contains no Hearthstone Access code and is not endorsed by that
+project or by Blizzard. Please do not report problems with it to the Hearthstone
+Access developers. Open an issue here instead.
+
+## A word on risk
+
+HS Message reads chat text, keeps it in memory, and optionally writes it to a
+local file. It sends nothing anywhere, touches no network, and gives no gameplay
+advantage.
+
+It is still a third party modification of the client, installed through a plugin
+loader that it brings with it, and that carries some risk to your account.
+
+Hearthstone Access has years of use behind it. This is a new project and has
+none of that history, so please do not assume it inherits any of it. Decide
+accordingly.
 
 ## Install
 
@@ -56,18 +77,6 @@ Then start Hearthstone and press **Alt+H** to hear the command list.
 
 Nothing is installed system wide. Everything lives inside your Hearthstone
 folder, and uninstalling is deleting a file.
-
-## The problem it solves
-
-Hearthstone Access speaks an incoming whisper once and never stores it. Worse,
-its speech manager calls `InterruptTexts()` whenever any key goes down, and that
-drains the whole pending speech queue rather than just the current sentence. So
-a message that arrives while you are working the tavern gets cut off mid word
-and thrown away.
-
-NVDA's speech history is not a workaround, because its review position jumps
-back to the newest item every time NVDA speaks. During combat, that is
-constantly.
 
 ## Commands
 
@@ -143,12 +152,6 @@ Reviewing everything the game has said, not just chat:
 
 That transcript deliberately does not move your review position when new speech
 arrives. It is the piece NVDA's speech history gets wrong for this use case.
-
-## Messages are still spoken normally
-
-HS Message does not change how a message is announced when it arrives.
-Hearthstone Access speaks it exactly as it does today, and the plugin only keeps
-a copy.
 
 ## About replying
 
@@ -280,26 +283,6 @@ To remove BepInEx as well and go back to stock, also delete `winhttp.dll`,
 
 If Hearthstone ever refuses to launch after a game update, delete `winhttp.dll`.
 That disables BepInEx and the game returns to normal immediately.
-
-## Not affiliated with Hearthstone Access
-
-While HS Message runs on top of Hearthstone Access, it is a separate downstream
-project. It contains no Hearthstone Access code and is not endorsed by that
-project or by Blizzard. Please do not report problems with it to the Hearthstone
-Access developers. Open an issue here instead.
-
-## A word on risk
-
-HS Message reads chat text, keeps it in memory, and optionally writes it to a
-local file. It sends nothing anywhere, touches no network, and gives no gameplay
-advantage.
-
-It is still a third party modification of the client, installed through a plugin
-loader that it brings with it, and that carries some risk to your account.
-
-Hearthstone Access has years of use behind it. This is a new project and has
-none of that history, so please do not assume it inherits any of it. Decide
-accordingly.
 
 ## AI code disclosure
 
