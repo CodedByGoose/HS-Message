@@ -13,23 +13,45 @@ it to be installed.
 
 ## Install
 
-Open PowerShell and paste this in:
+Close Hearthstone first, then pick whichever of these suits you.
+
+### Download and run
+
+Download this file and run it:
+
+**https://github.com/CodedByGoose/HS-Message/releases/latest/download/Install-HS-Message.bat**
+
+It lands in your Downloads folder. Press Enter on it to run. Windows may first
+ask whether you are sure you want to run a file from the internet: choose Run.
+If it needs permission to write to the Hearthstone folder it will ask, and carry
+on by itself once you say yes.
+
+### One line in PowerShell
+
+If you would rather not download anything, open PowerShell and paste this in:
 
 ```powershell
 irm https://raw.githubusercontent.com/CodedByGoose/HS-Message/main/install-web.ps1 | iex
 ```
 
-That is the whole thing. It finds Hearthstone, installs BepInEx if you do not
-already have it, downloads the latest release, and puts it in place.
+Or press Windows+R and paste this, which does the same thing without opening
+PowerShell yourself:
 
-If it says it cannot write to the Hearthstone folder, reopen PowerShell as
-administrator and run it again. To do that: press the Windows key, type
-`powershell`, then press Shift+Ctrl+Enter.
+```
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/CodedByGoose/HS-Message/main/install-web.ps1 | iex"
+```
+
+### Either way
+
+The installer finds Hearthstone by itself, installs BepInEx if you do not
+already have it, downloads the latest release, and puts it in place. It refuses
+to run while Hearthstone is open, and checks it can write to the folder before
+changing anything.
 
 Then start Hearthstone and press **Alt+H** to hear the command list.
 
 Nothing is installed system wide. Everything lives inside your Hearthstone
-folder.
+folder, and uninstalling is deleting a file.
 
 ## The problem it solves
 

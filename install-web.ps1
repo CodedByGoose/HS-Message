@@ -84,15 +84,45 @@ if (-not (Test-Path (Join-Path $hs "Hearthstone_Data\Managed\Accessibility\Tolk.
     Say ""
 }
 
+$needsAdmin = $false
 try {
     $probe = Join-Path $hs ".hsm_writetest"
     [IO.File]::WriteAllText($probe, "x")
     Remove-Item $probe -Force
 }
 catch {
-    Problem "Cannot write to $hs."
-    Say "Reopen PowerShell as administrator and run this again:"
-    Say "  press the Windows key, type powershell, then press Shift+Ctrl+Enter"
+    $needsAdmin = $true
+}
+
+if ($needsAdmin) {
+    $elevated = ([Security.Principal.WindowsPrincipal] `
+        [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+            [Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    if ($elevated) {
+        Problem "Cannot write to $hs even as administrator. Check the folder permissions."
+        return
+    }
+
+    Say ""
+    Say "This needs permission to write to the Hearthstone folder."
+    Say "Windows will ask you to confirm. Say yes, and the install carries on"
+    Say "in a new window."
+    Say ""
+
+    $inner = "irm https://raw.githubusercontent.com/$Repo/main/install-web.ps1 | iex; " +
+             "Write-Host ''; Read-Host 'Press Enter to close'"
+
+    try {
+        Start-Process powershell -Verb RunAs -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $inner)
+    }
+    catch {
+        Problem "Permission was refused, so nothing was changed."
+        Say "You can try again, or reopen PowerShell as administrator yourself:"
+        Say "  press the Windows key, type powershell, then press Shift+Ctrl+Enter"
+    }
+
     return
 }
 
