@@ -174,8 +174,11 @@ character reads as "blank", word movement speaks the whole word.
 Two limits worth knowing:
 
 - You can only reply to people already in the buffer. The plugin learns who
-  someone actually is from the whisper itself, so it cannot start a brand new
-  conversation with somebody who has not messaged you.
+  somebody actually is from a whisper, and a whisper in either direction counts,
+  so anyone you have exchanged a single message with this session is reachable.
+  To reach somebody new, send them one message the usual way through the social
+  menu with F4. After that they are in the buffer and Alt+M reaches them for the
+  rest of the session.
 - Typing feedback is spoken by the plugin rather than by your screen reader's
   own edit box handling. It does follow your NVDA settings though, see below.
   Caret movement is always spoken whatever those say, because that is
@@ -262,8 +265,9 @@ After the first run, settings live in
   because a Win32 control living inside a Unity game is unproven ground. It is
   built to fail safely: if the control will not open you get the plugin's own
   editor instead, and Escape always closes the reply box whichever one is up.
-- You cannot start a new conversation, only reply to people who have messaged
-  you this session.
+- HS Message cannot open a conversation with somebody you have not spoken to
+  this session. Send that first message the usual way through the social menu,
+  and Alt+M handles the rest of the conversation from then on.
 - Tested on Windows against Hearthstone 36.4 and Unity 6. Other versions are
   likely fine, since nothing is version specific, but they are unproven.
 

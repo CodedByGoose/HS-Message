@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace HSMessage
 {
-    [BepInPlugin(Guid, "HS Message", "1.0.0")]
+    [BepInPlugin(Guid, "HS Message", "1.2.0")]
     public class Plugin : BaseUnityPlugin
     {
         internal const string Guid = "com.codedbygoose.hsmessage";

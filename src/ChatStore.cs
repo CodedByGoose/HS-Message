@@ -19,8 +19,10 @@ namespace HSMessage
         /// <summary>
         /// The game's BnetPlayer for this person, held as object so we never
         /// need a compile-time reference to Assembly-CSharp. Needed to reply.
-        /// Learned from the whisper itself, which is why you can only reply to
-        /// people already in the buffer.
+        /// Learned from the whisper itself, in either direction, which is why
+        /// you can only reply to people already in the buffer. One message sent
+        /// through the game's own social menu is enough to put someone there,
+        /// because the outgoing bubble goes through the same hook.
         /// </summary>
         internal object PeerPlayer;
 
