@@ -277,20 +277,31 @@ To remove BepInEx as well and go back to stock, also delete `winhttp.dll`,
 If Hearthstone ever refuses to launch after a game update, delete `winhttp.dll`.
 That disables BepInEx and the game returns to normal immediately.
 
-## A word on risk
-
-Hearthstone Access is approved by Blizzard. BepInEx is not. HS Message reads
-chat text, keeps it in memory, and optionally writes it to a local file. It
-sends nothing anywhere, touches no network, and gives no gameplay advantage. It
-is still a third party modification of the client, and that carries some risk to
-your account. Decide accordingly.
-
 ## Not affiliated with Hearthstone Access
 
-This is a separate downstream project. It contains no Hearthstone Access code
-and is not endorsed by that project or by Blizzard. Please do not report
-problems with it to the Hearthstone Access developers. Open an issue here
-instead.
+While HS Message runs on top of Hearthstone Access, it is a separate downstream
+project. It contains no Hearthstone Access code and is not endorsed by that
+project or by Blizzard. Please do not report problems with it to the Hearthstone
+Access developers. Open an issue here instead.
+
+## A word on risk
+
+HS Message reads chat text, keeps it in memory, and optionally writes it to a
+local file. It sends nothing anywhere, touches no network, and gives no gameplay
+advantage.
+
+It is still a third party modification of the client, installed through a plugin
+loader that it brings with it, and that carries some risk to your account.
+
+Hearthstone Access has years of use behind it. This is a new project and has
+none of that history, so please do not assume it inherits any of it. Decide
+accordingly.
+
+## AI code disclosure
+
+Parts of HS Message were written with AI assistance, alongside code written by
+hand. All of it is directed, reviewed and tested by a person, and the parts that
+have not been tested say so under Known limitations.
 
 ## How it works
 
