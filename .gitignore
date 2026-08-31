@@ -1,0 +1,10 @@
+# Build output
+bin/
+obj/
+
+# BepInEx assemblies fetched by build.ps1 purely to compile against
+lib/
+
+# Local chat logs, if anyone ever points LogDirectory here
+chat-logs/
+*.log
