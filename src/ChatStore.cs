@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     internal sealed class ChatMessage
     {
@@ -205,7 +205,7 @@ namespace HearthstoneChatBuffer
 
                 c.Cursor = i;
                 c.Messages[i].Read = true;
-                return Describe(c, c.Messages[i]);
+                return Describe(c, c.Messages[i], false);
             }
 
             if (received == 0) return "Nothing received from " + c.Peer + ".";
@@ -386,7 +386,22 @@ namespace HearthstoneChatBuffer
 
         private static string Describe(Conversation c, ChatMessage m)
         {
+            return Describe(c, m, true);
+        }
+
+        /// <summary>
+        /// The position counter is useful while arrowing around, because it
+        /// tells you where you are in the thread. It is just noise on the number
+        /// keys, where you already know which message you asked for, and the
+        /// two numbers disagree anyway: the counter is absolute and oldest
+        /// first, while the number keys count back from the newest.
+        /// </summary>
+        private static string Describe(Conversation c, ChatMessage m, bool includePosition)
+        {
             if (m == null) return Strings.NoMessages;
+
+            if (!includePosition)
+                return string.Format("{0}: {1}.", Speaker(c, m), m.Text);
 
             return string.Format("{0}: {1}. {2} of {3}.",
                 Speaker(c, m), m.Text, c.Cursor + 1, c.Messages.Count);

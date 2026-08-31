@@ -128,6 +128,14 @@ try {
     $plugins = Join-Path $hs "BepInEx\plugins"
     New-Item -ItemType Directory -Force $plugins | Out-Null
 
+    # Pre-release builds shipped under a different file name. Leaving it behind
+    # would have BepInEx trying to load the same plugin twice.
+    $legacy = Join-Path $plugins "HearthstoneChatBuffer.dll"
+    if (Test-Path $legacy) {
+        Remove-Item $legacy -Force
+        Say "Removed an older copy under the previous file name."
+    }
+
     # --- the plugin --------------------------------------------------------
 
     Say "Finding the latest HS Message release..."
@@ -135,12 +143,12 @@ try {
         -Uri "https://api.github.com/repos/$Repo/releases/latest" `
         -Headers @{ "User-Agent" = "HS-Message-Installer" }
 
-    $asset = $release.assets | Where-Object { $_.name -eq "HearthstoneChatBuffer.dll" } | Select-Object -First 1
-    if (-not $asset) { throw "The latest release has no HearthstoneChatBuffer.dll attached." }
+    $asset = $release.assets | Where-Object { $_.name -eq "HSMessage.dll" } | Select-Object -First 1
+    if (-not $asset) { throw "The latest release has no HSMessage.dll attached." }
 
     Say "Downloading HS Message $($release.tag_name)..."
     Invoke-WebRequest -UseBasicParsing -Uri $asset.browser_download_url `
-        -OutFile (Join-Path $plugins "HearthstoneChatBuffer.dll")
+        -OutFile (Join-Path $plugins "HSMessage.dll")
 
     Say ""
     Say "Done."
@@ -149,7 +157,7 @@ try {
     Say "Alt+1 reads the newest message someone sent you. Alt+M replies to them."
     Say ""
     Say "To remove it later, delete this file:"
-    Say "  $plugins\HearthstoneChatBuffer.dll"
+    Say "  $plugins\HSMessage.dll"
     Say "To remove BepInEx as well, also delete winhttp.dll from $hs"
 }
 catch {

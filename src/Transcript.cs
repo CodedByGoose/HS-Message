@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// A rolling record of everything Hearthstone Access has spoken, captured at

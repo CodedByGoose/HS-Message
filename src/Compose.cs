@@ -4,7 +4,7 @@ using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// An inline reply box. No window, no friends list, no navigating anything:

@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using HarmonyLib;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// Every hook into Hearthstone Access, resolved by name at runtime.

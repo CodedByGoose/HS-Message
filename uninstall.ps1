@@ -22,7 +22,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     throw "This script needs administrator rights. Reopen PowerShell as administrator."
 }
 
-$plugin = Join-Path $HearthstoneDir "BepInEx\plugins\HearthstoneChatBuffer.dll"
+$plugin = Join-Path $HearthstoneDir "BepInEx\plugins\HSMessage.dll"
 if (Test-Path $plugin) {
     Remove-Item $plugin -Force
     Say "Removed the plugin."

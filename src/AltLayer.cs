@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// Owns every Alt+key combination while Hearthstone Access is running.

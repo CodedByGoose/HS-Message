@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// Appends every whisper to a plain text file, one day per file. Belt and

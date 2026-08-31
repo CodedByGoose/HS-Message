@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using BepInEx.Logging;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
     /// <summary>
     /// Talks to the screen reader directly through Tolk, deliberately bypassing

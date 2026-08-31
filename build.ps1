@@ -1,4 +1,4 @@
-# Builds HearthstoneChatBuffer.dll.
+# Builds HSMessage.dll.
 #
 # Does NOT need administrator rights. It fetches BepInEx into a local lib\
 # folder purely to compile against, and reads the Unity assemblies straight out
@@ -79,14 +79,14 @@ Say "BepInEx reference assemblies at $coreDir"
 # --- build -----------------------------------------------------------------
 
 Say "Building..."
-& $dotnet build (Join-Path $root "HearthstoneChatBuffer.csproj") `
+& $dotnet build (Join-Path $root "HSMessage.csproj") `
     -c Release `
     -p:HearthstoneDir="$HearthstoneDir" `
     -p:BepInExCoreDir="$coreDir"
 
 if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE." }
 
-$dll = Join-Path $root "bin\Release\HearthstoneChatBuffer.dll"
+$dll = Join-Path $root "bin\Release\HSMessage.dll"
 if (-not (Test-Path $dll)) { throw "Build reported success but $dll is missing." }
 
 Say ""
@@ -98,6 +98,13 @@ if ($Deploy) {
     $plugins = Join-Path $HearthstoneDir "BepInEx\plugins"
     if (-not (Test-Path $plugins)) {
         throw "BepInEx is not installed in the game yet. Run install.ps1 as administrator first."
+    }
+
+    # Pre-release builds shipped under a different file name.
+    $legacy = Join-Path $plugins "HearthstoneChatBuffer.dll"
+    if (Test-Path $legacy) {
+        Remove-Item $legacy -Force
+        Say "Removed an older copy under the previous file name."
     }
 
     try {

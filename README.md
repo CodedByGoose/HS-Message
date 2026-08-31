@@ -125,7 +125,7 @@ Two limits worth knowing:
 ## Configuration
 
 After the first run, settings live in
-`BepInEx\config\com.codedbygoose.hearthstonechatbuffer.cfg`.
+`BepInEx\config\com.codedbygoose.hsmessage.cfg`.
 
 - `MaxMessagesPerConversation`, default 200
 - `LogToDisk`, default true. Appends every whisper to a dated text file under
@@ -152,7 +152,7 @@ After the first run, settings live in
 
 ## Uninstalling
 
-Delete `BepInEx\plugins\HearthstoneChatBuffer.dll` from your Hearthstone folder.
+Delete `BepInEx\plugins\HSMessage.dll` from your Hearthstone folder.
 
 To remove BepInEx as well and go back to stock, also delete `winhttp.dll`,
 `doorstop_config.ini` and the `BepInEx` folder.

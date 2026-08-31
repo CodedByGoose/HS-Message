@@ -5,12 +5,12 @@ using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
 
-namespace HearthstoneChatBuffer
+namespace HSMessage
 {
-    [BepInPlugin(Guid, "Hearthstone Chat Buffer", "1.0.0")]
+    [BepInPlugin(Guid, "HS Message", "1.0.0")]
     public class Plugin : BaseUnityPlugin
     {
-        internal const string Guid = "com.codedbygoose.hearthstonechatbuffer";
+        internal const string Guid = "com.codedbygoose.hsmessage";
 
         internal static ManualLogSource Log;
 
@@ -78,12 +78,12 @@ namespace HearthstoneChatBuffer
 
             // A detached object so we get an Update tick regardless of what
             // scene the game is in.
-            var host = new GameObject("HearthstoneChatBuffer");
+            var host = new GameObject("HSMessage");
             host.hideFlags = HideFlags.HideAndDontSave;
             host.AddComponent<Runtime>();
             DontDestroyOnLoad(host);
 
-            Log.LogInfo("Hearthstone Chat Buffer ready. Press Alt+H in game for the command list.");
+            Log.LogInfo("HS Message ready. Press Alt+H in game for the command list.");
         }
     }
 

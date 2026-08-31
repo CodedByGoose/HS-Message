@@ -80,9 +80,16 @@ else {
 $plugins = Join-Path $HearthstoneDir "BepInEx\plugins"
 New-Item -ItemType Directory -Force $plugins | Out-Null
 
+# Pre-release builds shipped under a different file name.
+$legacy = Join-Path $plugins "HearthstoneChatBuffer.dll"
+if (Test-Path $legacy) {
+    Remove-Item $legacy -Force
+    Say "Removed an older copy under the previous file name."
+}
+
 # --- plugin ----------------------------------------------------------------
 
-$dll = Join-Path $root "bin\Release\HearthstoneChatBuffer.dll"
+$dll = Join-Path $root "bin\Release\HSMessage.dll"
 if (Test-Path $dll) {
     Copy-Item $dll $plugins -Force
     Say "Plugin installed to $plugins"
