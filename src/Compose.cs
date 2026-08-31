@@ -71,16 +71,20 @@ namespace HSMessage
 
         // ------------------------------------------------------------- begin
 
+        /// <summary>Whether sending is wired up at all. Asked by the friend
+        /// picker before it offers a list that could go nowhere.</summary>
+        internal static bool CanReply
+        {
+            get
+            {
+                Resolve();
+                return _sendWhisper != null;
+            }
+        }
+
+        /// <summary>Reply to whoever the chat buffer is currently on.</summary>
         internal static void Begin()
         {
-            Resolve();
-
-            if (_sendWhisper == null)
-            {
-                Speech.Say("Replying is not available.");
-                return;
-            }
-
             var peer = ChatStore.CurrentPeerName();
             var player = ChatStore.CurrentPeerPlayer();
 
@@ -93,8 +97,32 @@ namespace HSMessage
             if (player == null)
             {
                 // We only learn who someone actually is from a whisper going in
-                // or out, so we can only reply to people already in the buffer.
-                Speech.Say("Cannot reply to " + peer + " yet.");
+                // or out, so replying from the buffer needs a message first.
+                // The friend picker has no such limit.
+                Speech.Say("Cannot reply to " + peer + " yet. Alt plus N reaches anyone online.");
+                return;
+            }
+
+            Begin(peer, player);
+        }
+
+        /// <summary>
+        /// Open the box addressed to a known player. The friend picker lands
+        /// here, and so does the buffer path above.
+        /// </summary>
+        internal static void Begin(string peer, object player)
+        {
+            Resolve();
+
+            if (_sendWhisper == null)
+            {
+                Speech.Say("Replying is not available.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(peer) || player == null)
+            {
+                Speech.Say("No one selected.");
                 return;
             }
 
@@ -106,7 +134,7 @@ namespace HSMessage
 
             DecideEcho();
 
-            // AltLayer.Tick stops running while we are composing, so the Alt+M
+            // AltLayer.Tick stops running while we are composing, so the Alt+R
             // that got us here would otherwise sit in its consumed set forever
             // and keep HSA suppressed after we finish.
             AltLayer.ResetConsumed();
@@ -148,7 +176,7 @@ namespace HSMessage
             if (e.type != EventType.KeyDown) return;
 
             // The keypress that opened the box is still in flight this frame.
-            // Without this, Alt+M would type an "m".
+            // Without this, Alt+R would type an "r".
             if (Time.frameCount == _beganFrame) return;
 
             // Alt is our command layer, never text. Control plus Alt is left
@@ -175,10 +203,15 @@ namespace HSMessage
                     // everything, and a long message should be stoppable.
                     case KeyCode.A: Speech.SayInterruptible(Editor.SelectAll()); e.Use(); return;
 
+                    // Also interruptible: undo reads back the restored text,
+                    // which may be the whole message.
+                    case KeyCode.Z: Speech.SayInterruptible(Editor.Undo()); e.Use(); return;
+
                     case KeyCode.LeftArrow: Speech.Say(Editor.MoveWordLeft(shift)); e.Use(); return;
                     case KeyCode.RightArrow: Speech.Say(Editor.MoveWordRight(shift)); e.Use(); return;
 
                     case KeyCode.Backspace: Speech.Say(Editor.DeleteWordLeft()); e.Use(); return;
+                    case KeyCode.Delete: Speech.Say(Editor.DeleteWordRight()); e.Use(); return;
                 }
 
                 // Anything else with Control falls through: Control plus Home

@@ -92,12 +92,17 @@ Reading messages from the person you are currently on:
 - **Alt+Up** and **Alt+Down** step to older and newer messages. These do include
   your own replies, and carry on from wherever a number key left you.
 - **Alt+Home** and **Alt+End**, first and last message.
-- **Alt+R**, read the whole conversation from the top.
+- **Alt+A**, read the whole conversation from the top.
 
 Replying:
 
-- **Alt+M**, write a reply to the person you are currently on. Type, then press
+- **Alt+R**, write a reply to the person you are currently on. Type, then press
   Enter to send. **Escape** cancels.
+- **Alt+N**, message any online friend, whether or not they have whispered you.
+  Your online friends are read out as a list: arrow through it, or press a
+  letter to jump to the next name starting with it, then press Enter to open
+  the same reply box addressed to them. Away and busy friends say so as you
+  land on them. **Escape** backs out.
 
 Inside that box the usual editing keys all work, and behave the way they do in
 any other edit field:
@@ -110,7 +115,12 @@ any other edit field:
 - Hold **Shift** with any of those to select. **Ctrl+A** selects everything and
   reads it all back.
 - **Backspace** and **Delete** remove a character and speak it.
-  **Ctrl+Backspace** removes the word behind the caret.
+  **Ctrl+Backspace** removes the word behind the caret, **Ctrl+Delete** the
+  word after it.
+- **Ctrl+Z** puts the text back the way it was before the last change and
+  reads it out. A run of typing counts as one change, so it restores the
+  phrase, not one letter. Pressing it again brings the change back, so a
+  mistaken undo is itself undoable.
 - **Ctrl+V** pastes, **Ctrl+C** copies, **Ctrl+X** cuts. Pasting is the point:
   a link copied from your browser can go straight into a whisper. Line breaks
   in what you paste become spaces, since a whisper is a single line.
@@ -163,7 +173,7 @@ returns immediately with the comment "Chat is not implemented yet", so the usual
 route is to open the social menu with F4, find the person, and type into a field
 no screen reader can see, because there is no real edit control there to read.
 
-Alt+M skips all of that. It runs a line editor of its own, with a real caret and
+Alt+R skips all of that. It runs a line editor of its own, with a real caret and
 a real selection, and speaks the feedback itself, because nothing else will.
 While it is open, Hearthstone Access is told to stand down using its own
 `AllowTextInput` mechanism, the same one it uses for deck code entry, so no
@@ -179,12 +189,11 @@ character reads as "blank", word movement speaks the whole word.
 
 Two limits worth knowing:
 
-- You can only reply to people already in the buffer. The plugin learns who
-  somebody actually is from a whisper, and a whisper in either direction counts,
-  so anyone you have exchanged a single message with this session is reachable.
-  To reach somebody new, send them one message the usual way through the social
-  menu with F4. After that they are in the buffer and Alt+M reaches them for the
-  rest of the session.
+- Alt+R replies to people already in the buffer: the plugin learns who somebody
+  actually is from a whisper, and a whisper in either direction counts. For
+  somebody new, use Alt+N instead, which reads your online friends as a list
+  and needs no prior message. Once your message is sent they are in the buffer
+  like anyone else.
 - Typing feedback is spoken by the plugin rather than by your screen reader's
   own edit box handling. It does follow your NVDA settings though, see below.
   Caret movement is always spoken whatever those say, because that is
@@ -244,9 +253,8 @@ After the first run, settings live in
   Tolk API but have never been exercised against real hardware, because the
   author does not have a display. They are built to fail quietly rather than
   break anything else. Feedback very welcome.
-- HS Message cannot open a conversation with somebody you have not spoken to
-  this session. Send that first message the usual way through the social menu,
-  and Alt+M handles the rest of the conversation from then on.
+- Alt+N lists online friends only. Somebody who is offline, or not on your
+  friends list at all, still needs the game's own social menu.
 - Tested on Windows against Hearthstone 36.4 and Unity 6. Other versions are
   likely fine, since nothing is version specific, but they are unproven.
 

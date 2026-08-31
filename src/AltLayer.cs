@@ -67,6 +67,9 @@ namespace HSMessage
             // the game while you are mid-sentence would be nasty.
             if (Compose.Active) return true;
 
+            // Same while picking a friend: arrows and letters are ours.
+            if (FriendPicker.Active) return true;
+
             // Otherwise never interfere with a text field HSA itself opened.
             if (HsaBridge.IsTextInputAllowed()) return false;
 
@@ -174,7 +177,11 @@ namespace HSMessage
 
             // Reply to whoever you are currently on, inline. No window, no
             // friends list.
-            if (Hit(KeyCode.M)) { Compose.Begin(); return; }
+            if (Hit(KeyCode.R)) { Compose.Begin(); return; }
+
+            // Message any online friend, buffer or not: a spoken picker,
+            // then the same reply box.
+            if (Hit(KeyCode.N)) { FriendPicker.Begin(); return; }
 
             if (Hit(KeyCode.LeftArrow)) { Speech.Say(ChatStore.CycleConversation(-1)); return; }
             if (Hit(KeyCode.RightArrow)) { Speech.Say(ChatStore.CycleConversation(1)); return; }
@@ -187,7 +194,7 @@ namespace HSMessage
 
             if (Hit(KeyCode.Space)) { Speech.Say(ChatStore.NewestUnread()); return; }
 
-            if (Hit(KeyCode.R)) { Speech.SayInterruptible(ChatStore.ReadWholeConversation()); return; }
+            if (Hit(KeyCode.A)) { Speech.SayInterruptible(ChatStore.ReadWholeConversation()); return; }
             if (Hit(KeyCode.L)) { Speech.SayInterruptible(ChatStore.ListSlots()); return; }
             if (Hit(KeyCode.T)) { Speech.Say(ChatStore.DescribeCurrentTimestamp()); return; }
 
@@ -260,12 +267,15 @@ namespace HSMessage
             "Alt plus up and down, older and newer messages, including your own replies. " +
             "Alt plus left and right, switch between people. " +
             "Alt plus shift plus 1 through 9, jump straight to a person. " +
-            "Alt plus M, write a reply to this person. The box edits like an " +
-            "ordinary text field: arrows, Home and End, Control plus V to paste. " +
+            "Alt plus R, write a reply to this person. The box edits like an " +
+            "ordinary text field: arrows, Home and End, Control plus V to paste, " +
+            "Control plus Z to undo. " +
+            "Alt plus N, message any online friend: arrow through the list, " +
+            "or press a letter, then Enter. " +
             "Alt plus S, summary of unread. " +
             "Alt plus Home and End, first and last message. " +
             "Alt plus space, newest unread message. " +
-            "Alt plus R, read the whole conversation. " +
+            "Alt plus A, read the whole conversation. " +
             "Alt plus L, list people. " +
             "Alt plus T, when the current message arrived. " +
             "Alt plus O, open a web link in the current message. " +

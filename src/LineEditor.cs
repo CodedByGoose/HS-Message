@@ -50,6 +50,70 @@ namespace HSMessage
             _text.Length = 0;
             _caret = 0;
             _anchor = 0;
+
+            // A fresh box must not undo into the previous message. Replies go
+            // to different people; resurrecting the last one in the wrong
+            // conversation is worse than having no undo at all.
+            _undoText = null;
+            _lastEdit = EditKind.None;
+            _lastEditCaret = -1;
+        }
+
+        // -------------------------------------------------------------- undo
+
+        /// <summary>The one saved state, swapped with the live one by Undo.</summary>
+        private string _undoText;
+        private int _undoCaret;
+
+        private enum EditKind { None, Typing, Backspacing, Deleting, Bulk }
+        private EditKind _lastEdit = EditKind.None;
+
+        /// <summary>Where the caret ended after the last small edit, so a run
+        /// of them is recognised by being contiguous.</summary>
+        private int _lastEditCaret = -1;
+
+        /// <summary>
+        /// Take an undo snapshot before a change. An unbroken run of the same
+        /// small edit coalesces into one step, so undoing after typing a
+        /// phrase restores the whole phrase rather than one character, the
+        /// way undo behaves in a normal edit box. Bulk changes -- deleting a
+        /// selection, a word, a paste -- always get their own step.
+        /// </summary>
+        private void Remember(EditKind kind)
+        {
+            if (kind != EditKind.Bulk && kind == _lastEdit && _caret == _lastEditCaret)
+                return;
+
+            _undoText = _text.ToString();
+            _undoCaret = _caret;
+            _lastEdit = kind;
+        }
+
+        /// <summary>
+        /// Swap the text back to how it was before the last change. Pressing
+        /// again swaps forward again, so a mistaken undo is itself undoable.
+        /// </summary>
+        internal string Undo()
+        {
+            if (_undoText == null) return "Nothing to undo.";
+
+            string liveText = _text.ToString();
+            int liveCaret = _caret;
+
+            _text.Length = 0;
+            _text.Append(_undoText);
+            _caret = Math.Min(_undoCaret, _text.Length);
+            _anchor = _caret;
+
+            _undoText = liveText;
+            _undoCaret = liveCaret;
+
+            // The next edit starts a fresh run rather than extending one from
+            // before the undo.
+            _lastEdit = EditKind.None;
+            _lastEditCaret = -1;
+
+            return "Undone. " + (_text.Length == 0 ? Speakable.Blank : _text.ToString());
         }
 
         // ---------------------------------------------------------- movement
@@ -148,16 +212,20 @@ namespace HSMessage
         /// </summary>
         internal void Insert(char c)
         {
+            Remember(HasSelection ? EditKind.Bulk : EditKind.Typing);
+
             DeleteSelection();
             _text.Insert(_caret, c);
             _caret++;
             _anchor = _caret;
+            _lastEditCaret = _caret;
         }
 
         internal string Backspace()
         {
             if (HasSelection)
             {
+                Remember(EditKind.Bulk);
                 string removed = Selected();
                 DeleteSelection();
                 return "Deleted " + Describe(removed);
@@ -165,10 +233,12 @@ namespace HSMessage
 
             if (_caret == 0) return Speakable.Blank;
 
+            Remember(EditKind.Backspacing);
             _caret--;
             char removedChar = _text[_caret];
             _text.Remove(_caret, 1);
             _anchor = _caret;
+            _lastEditCaret = _caret;
             return Speakable.Character(removedChar);
         }
 
@@ -176,6 +246,7 @@ namespace HSMessage
         {
             if (HasSelection)
             {
+                Remember(EditKind.Bulk);
                 string removed = Selected();
                 DeleteSelection();
                 return "Deleted " + Describe(removed);
@@ -183,8 +254,10 @@ namespace HSMessage
 
             if (_caret >= _text.Length) return Speakable.Blank;
 
+            Remember(EditKind.Deleting);
             char removedChar = _text[_caret];
             _text.Remove(_caret, 1);
+            _lastEditCaret = _caret;
             return Speakable.Character(removedChar);
         }
 
@@ -193,11 +266,30 @@ namespace HSMessage
             if (HasSelection) return Backspace();
             if (_caret == 0) return Speakable.Blank;
 
+            Remember(EditKind.Bulk);
             int start = WordStartBefore(_caret);
             string removed = _text.ToString(start, _caret - start);
             _text.Remove(start, _caret - start);
             _caret = start;
             _anchor = start;
+            return "Deleted " + Describe(removed);
+        }
+
+        /// <summary>
+        /// Ctrl+Delete: removes from the caret to the start of the next word,
+        /// trailing spaces included, mirroring DeleteWordLeft and matching
+        /// what the key does in an ordinary edit box.
+        /// </summary>
+        internal string DeleteWordRight()
+        {
+            if (HasSelection) return Delete();
+            if (_caret >= _text.Length) return Speakable.Blank;
+
+            Remember(EditKind.Bulk);
+            int end = WordStartAfter(_caret);
+            string removed = _text.ToString(_caret, end - _caret);
+            _text.Remove(_caret, end - _caret);
+            _anchor = _caret;
             return "Deleted " + Describe(removed);
         }
 
@@ -243,6 +335,7 @@ namespace HSMessage
                 return "Could not cut.";
             }
 
+            Remember(EditKind.Bulk);
             DeleteSelection();
             return "Cut " + Describe(text);
         }
@@ -263,6 +356,7 @@ namespace HSMessage
             clip = Flatten(clip);
             if (clip.Length == 0) return "Clipboard is empty.";
 
+            Remember(EditKind.Bulk);
             DeleteSelection();
             _text.Insert(_caret, clip);
             _caret += clip.Length;

@@ -184,7 +184,7 @@ try {
     Say "Done."
     Say ""
     Say "Start Hearthstone and press Alt+H to hear the list of commands."
-    Say "Alt+1 reads the newest message someone sent you. Alt+M replies to them."
+    Say "Alt+1 reads the newest message someone sent you. Alt+R replies to them."
     Say ""
     Say "To remove it later, delete this file:"
     Say "  $plugins\HSMessage.dll"

@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace HSMessage
 {
-    [BepInPlugin(Guid, "HS Message", "1.3.0")]
+    [BepInPlugin(Guid, "HS Message", "1.4.0")]
     public class Plugin : BaseUnityPlugin
     {
         internal const string Guid = "com.codedbygoose.hsmessage";
@@ -117,6 +117,14 @@ namespace HSMessage
                 if (Compose.Active)
                 {
                     Compose.UpdateFallback();
+                    return;
+                }
+
+                // The friend picker also owns the keyboard, but has no free
+                // text, so everything it needs arrives right here.
+                if (FriendPicker.Active)
+                {
+                    FriendPicker.Tick();
                     return;
                 }
 
