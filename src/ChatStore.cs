@@ -159,8 +159,13 @@ namespace HSMessage
         }
 
         /// <summary>
-        /// Announces who you are on, how much is unread, and the newest message.
+        /// Announces who you are on, how much is unread, and one message.
         /// Reads the unread count before clearing it, so you hear it once.
+        ///
+        /// The message spoken is the newest UNREAD one when there is any,
+        /// not the newest overall. They differ when your own reply is the
+        /// most recent thing in the thread: reading that back while marking
+        /// the real message read would lose it without it ever being heard.
         /// </summary>
         private static string DescribeCurrentConversation()
         {
@@ -168,7 +173,19 @@ namespace HSMessage
             if (c == null) return Strings.NoMessages;
 
             int unread = c.Unread;
+
             c.Cursor = c.Messages.Count - 1;
+            if (unread > 0)
+            {
+                for (int i = c.Messages.Count - 1; i >= 0; i--)
+                {
+                    if (!c.Messages[i].Read && !c.Messages[i].Outgoing)
+                    {
+                        c.Cursor = i;
+                        break;
+                    }
+                }
+            }
 
             var sb = new StringBuilder();
             sb.Append(c.Peer);
