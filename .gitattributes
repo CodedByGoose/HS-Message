@@ -1,0 +1,6 @@
+# Batch files must keep CRLF. cmd.exe can misbehave on lone LF endings, and the
+# release asset is served byte for byte as committed.
+*.bat text eol=crlf
+
+# PowerShell is happy either way, but keep it consistent on Windows.
+*.ps1 text eol=crlf
