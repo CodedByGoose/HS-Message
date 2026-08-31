@@ -107,6 +107,10 @@ Getting your bearings:
 
 Other:
 
+- **Alt+O**, open a web link in the current message. Land on the message first
+  with the number keys or the arrows, then press it. The site's address is read
+  out as it opens. If a message holds more than one link, pressing again opens
+  the next. Only http and https addresses are ever opened.
 - **Alt+C**, copy the current message to the clipboard.
 - **Alt+B**, send the current message to a braille display without speaking it.
 - **Alt+Backspace**, stop talking.

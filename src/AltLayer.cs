@@ -169,6 +169,17 @@ namespace HSMessage
             if (Hit(KeyCode.L)) { Speech.SayInterruptible(ChatStore.ListSlots()); return; }
             if (Hit(KeyCode.T)) { Speech.Say(ChatStore.DescribeCurrentTimestamp()); return; }
 
+            // Open a link in whatever message the cursor is on.
+            //
+            // Alt+Enter was the obvious choice and does not work: the Unity
+            // player swallows it before the plugin ever sees the key, at a level
+            // Harmony cannot reach. Alt+O it is.
+            if (Hit(KeyCode.O))
+            {
+                Links.OpenFromCurrentMessage();
+                return;
+            }
+
             if (Hit(KeyCode.C)) { CopyCurrent(); return; }
             if (Hit(KeyCode.B)) { BrailleCurrent(); return; }
 
@@ -234,6 +245,7 @@ namespace HSMessage
             "Alt plus R, read the whole conversation. " +
             "Alt plus L, list people. " +
             "Alt plus T, when the current message arrived. " +
+            "Alt plus O, open a web link in the current message. " +
             "Alt plus C, copy the current message. " +
             "Alt plus B, send the current message to a braille display. " +
             "Alt plus comma and period, move through everything the game has said. " +
