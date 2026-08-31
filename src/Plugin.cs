@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace HSMessage
 {
-    [BepInPlugin(Guid, "HS Message", "1.2.0")]
+    [BepInPlugin(Guid, "HS Message", "1.3.0")]
     public class Plugin : BaseUnityPlugin
     {
         internal const string Guid = "com.codedbygoose.hsmessage";
@@ -22,7 +22,6 @@ namespace HSMessage
         internal static ConfigEntry<int> TranscriptSize;
         internal static ConfigEntry<bool> EchoTypedCharacters;
         internal static ConfigEntry<bool> EchoTypedWords;
-        internal static ConfigEntry<bool> UseNativeTextBox;
         internal static ConfigEntry<bool> FollowScreenReaderEcho;
 
         private void Awake()
@@ -77,15 +76,6 @@ namespace HSMessage
             EchoTypedWords = Config.Bind(
                 "Replying", "EchoTypedWords", true,
                 "Speak each word as you finish it. Same proviso as above.");
-
-            UseNativeTextBox = Config.Bind(
-                "Replying", "UseNativeTextBox", false,
-                "EXPERIMENTAL. Open a real Windows edit control for replies instead of the " +
-                "plugin's own line editor. Your screen reader then reads it directly, with its " +
-                "own caret reporting, review cursor and punctuation settings, and the clipboard " +
-                "keys are Windows' rather than ours. Unproven inside Hearthstone: if the control " +
-                "cannot be created the plugin falls back to its own editor, and Escape always " +
-                "closes the box either way.");
 
             try
             {

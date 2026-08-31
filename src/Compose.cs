@@ -13,20 +13,21 @@ namespace HSMessage
     /// returns immediately with "Chat is not implemented yet" -- so there is no
     /// real edit control anywhere for a screen reader to find.
     ///
-    /// There are two ways to fill that gap, and this class can use either.
+    /// This drives <see cref="LineEditor"/>: our own caret, our own selection,
+    /// our own announcements through Tolk. It depends on nothing but Unity
+    /// delivering key events, which is why it always works.
     ///
-    /// By default it drives <see cref="LineEditor"/>: our own caret, our own
-    /// selection, our own announcements through Tolk. It always works, because
-    /// it depends on nothing but Unity delivering key events.
+    /// A genuine Win32 edit control was tried instead, and removed. It did work
+    /// -- the screen reader read it natively, as hoped -- but every reply
+    /// manufactured a new window for NVDA to discover, which cost about a
+    /// second before anything was announced, and that cost is not ours to fix.
+    /// Taking the keyboard focus off a game engine that does not expect it also
+    /// produced two separate ways to strand the player. The line editor below
+    /// already covers what people actually asked for.
     ///
-    /// Set UseNativeTextBox and it instead opens a genuine Windows edit control
-    /// over the game, see <see cref="NativeEdit"/>, which your screen reader
-    /// reads directly and natively. Better when it works; unproven, so opt-in.
-    /// If it fails to open we fall back to the line editor without comment.
-    ///
-    /// Either way we call HSA's own AllowTextInput() while composing, which is
-    /// the sanctioned way to tell it to keep its hands off the keyboard. It is
-    /// the same mechanism HSA uses for deck code entry.
+    /// While composing we call HSA's own AllowTextInput(), which is the
+    /// sanctioned way to tell it to keep its hands off the keyboard. It is the
+    /// same mechanism HSA uses for deck code entry.
     /// </summary>
     internal static class Compose
     {
@@ -35,9 +36,6 @@ namespace HSMessage
         private static string _peerName;
         private static object _peerPlayer;
         private static int _beganFrame = -1;
-
-        /// <summary>True while the real Windows control is the one taking keys.</summary>
-        private static bool _native;
 
         internal static bool Active { get; private set; }
 
@@ -115,23 +113,9 @@ namespace HSMessage
 
             SetHsaTextInput(true);
 
-            _native = Plugin.UseNativeTextBox.Value &&
-                      NativeEdit.TryOpen("Message to " + peer);
-
-            if (_native)
-            {
-                // Deliberately terse. The control already has focus, so the
-                // screen reader is about to describe it in its own words, and
-                // from here on every keystroke is Windows' business, not ours.
-                Speech.SayInterruptible(
-                    "Message to " + peer + ". Enter to send, Escape cancels.");
-            }
-            else
-            {
-                Speech.SayInterruptible(
-                    "Message to " + peer + ". Type, then Enter to send. " +
-                    "Arrows move, F2 reads it back, Escape cancels.");
-            }
+            Speech.SayInterruptible(
+                "Message to " + peer + ". Type, then Enter to send. " +
+                "Arrows move, F2 reads it back, Escape cancels.");
         }
 
         private static void SetHsaTextInput(bool allow)
@@ -156,13 +140,11 @@ namespace HSMessage
         /// state, so punctuation and capitals arrive correctly rather than
         /// having to be reconstructed from raw key codes.
         ///
-        /// Called from Runtime.OnGUI. Does nothing while the native control is
-        /// up, since Windows is handling those keys and acting on them twice
-        /// would double every character.
+        /// Called from Runtime.OnGUI.
         /// </summary>
         internal static void HandleGuiEvent(Event e)
         {
-            if (!Active || _native || e == null) return;
+            if (!Active || e == null) return;
             if (e.type != EventType.KeyDown) return;
 
             // The keypress that opened the box is still in flight this frame.
@@ -189,7 +171,9 @@ namespace HSMessage
                     case KeyCode.V: Speech.Say(Editor.Paste()); e.Use(); return;
                     case KeyCode.C: Speech.Say(Editor.Copy()); e.Use(); return;
                     case KeyCode.X: Speech.Say(Editor.Cut()); e.Use(); return;
-                    case KeyCode.A: Speech.Say(Editor.SelectAll()); e.Use(); return;
+                    // Interruptible, because selecting everything now reads
+                    // everything, and a long message should be stoppable.
+                    case KeyCode.A: Speech.SayInterruptible(Editor.SelectAll()); e.Use(); return;
 
                     case KeyCode.LeftArrow: Speech.Say(Editor.MoveWordLeft(shift)); e.Use(); return;
                     case KeyCode.RightArrow: Speech.Say(Editor.MoveWordRight(shift)); e.Use(); return;
@@ -226,10 +210,17 @@ namespace HSMessage
                 case KeyCode.Backspace: Speech.Say(Editor.Backspace()); e.Use(); return;
                 case KeyCode.Delete: Speech.Say(Editor.Delete()); e.Use(); return;
 
-                // A single line edit ignores these. Swallowed rather than
-                // passed on, so they cannot reach the game behind us.
+                // Up and down have nothing to move to on a single line, so they
+                // read the whole message instead. That is not a liberty: a
+                // screen reader reads the line you arrow onto, and here the
+                // line is the message. It saves reaching for F2.
                 case KeyCode.UpArrow:
                 case KeyCode.DownArrow:
+                    Speech.SayInterruptible(Editor.ReadBack()); e.Use(); return;
+
+                // Nothing sensible to do with these on one line. Swallowed
+                // rather than passed on, so they cannot reach the game behind
+                // us.
                 case KeyCode.PageUp:
                 case KeyCode.PageDown:
                 case KeyCode.Tab:
@@ -357,10 +348,16 @@ namespace HSMessage
                 Plugin.Log.LogError("SendWhisper failed: " + e);
             }
 
-            // On success the game raises its own chat bubble for the outgoing
-            // message, which our ChatBubbleFrame hook files as an outgoing
-            // entry. So we deliberately do not add it to the store here.
-            Speech.Say(sent ? "Sent to " + peer + "." : "Could not send to " + peer + ".");
+            // Nothing is said on success. The game raises its own chat bubble
+            // for the outgoing message, which Hearthstone Access reads out and
+            // accompanies with a tone, so a confirmation on top of that is
+            // just something else to sit through. That bubble is also what our
+            // ChatBubbleFrame hook files as the outgoing entry, which is why
+            // nothing is added to the store here either.
+            //
+            // Failure still speaks. Nothing is read out and no tone plays when
+            // a send fails, so silence would be indistinguishable from success.
+            if (!sent) Speech.Say("Could not send to " + peer + ".");
         }
 
         /// <summary>
@@ -376,66 +373,34 @@ namespace HSMessage
             _peerPlayer = null;
             _beganFrame = -1;
 
-            // Close the native control first: it holds the keyboard focus, and
-            // handing back to HSA before Unity can even see keys again would
-            // leave the game unable to respond to anything.
-            if (_native)
-            {
-                NativeEdit.Close();
-                _native = false;
-            }
-
             SetHsaTextInput(false);
 
             // Whatever we were holding open, let it go. Handing control back to
             // HSA in a bad state makes the game unplayable.
             AltLayer.ResetConsumed();
 
+            // Reading the message back inside the box arms "stop on the next
+            // keypress", and that speech is over now. Left armed, the first key
+            // pressed afterwards would silence the screen reader part way
+            // through Hearthstone Access announcing the message we just sent.
+            Speech.CancelOnNextKey = false;
+
             if (terminators == null) return;
             foreach (var key in terminators) AltLayer.SuppressUntilReleased(key);
         }
 
         /// <summary>
-        /// A guaranteed way out, and the pump for the native control.
+        /// A guaranteed way out.
         ///
-        /// Typing normally arrives through OnGUI, but if those events ever
-        /// stopped reaching us the box could not be closed, and since composing
+        /// Typing arrives through OnGUI, but if those events ever stopped
+        /// reaching us the box could not be closed, and since composing
         /// suppresses all of HSA's input that would lock up the game. Escape is
-        /// therefore also checked from Update, which runs unconditionally, and
-        /// is checked in native mode too: if the focus ever slips off the edit
-        /// control back onto the game, this is the only thing still listening.
+        /// therefore also checked from Update, which runs unconditionally.
         /// </summary>
         internal static void UpdateFallback()
         {
             if (!Active) return;
-
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                Cancel(KeyCode.Escape);
-                return;
-            }
-
-            if (!_native) return;
-
-            // The window disappearing under us is not recoverable, and leaving
-            // the keyboard captured would be far worse than losing a draft.
-            if (!NativeEdit.Tick())
-            {
-                Cancel();
-                return;
-            }
-
-            if (NativeEdit.Cancelled)
-            {
-                Cancel(KeyCode.Escape);
-                return;
-            }
-
-            if (NativeEdit.Submitted)
-            {
-                // Read while the control is still alive; End destroys it.
-                Send(NativeEdit.ReadText(), KeyCode.Return, KeyCode.KeypadEnter);
-            }
+            if (Input.GetKeyDown(KeyCode.Escape)) Cancel(KeyCode.Escape);
         }
     }
 }

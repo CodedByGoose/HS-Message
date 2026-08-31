@@ -107,13 +107,16 @@ any other edit field:
   reader would say it.
 - **Ctrl+Left** and **Ctrl+Right** move a word at a time and speak the word.
 - **Home** and **End** go to the start and the end.
-- Hold **Shift** with any of those to select. **Ctrl+A** selects everything.
+- Hold **Shift** with any of those to select. **Ctrl+A** selects everything and
+  reads it all back.
 - **Backspace** and **Delete** remove a character and speak it.
   **Ctrl+Backspace** removes the word behind the caret.
 - **Ctrl+V** pastes, **Ctrl+C** copies, **Ctrl+X** cuts. Pasting is the point:
   a link copied from your browser can go straight into a whisper. Line breaks
   in what you paste become spaces, since a whisper is a single line.
-- **F2** reads the whole message back. **Shift+F2** says where the caret is.
+- **Up** and **Down** read the whole message back. There is only one line, so
+  they have nothing to move to, and reading the line you are on is what a screen
+  reader does anyway. **F2** does the same. **Shift+F2** says where the caret is.
 
 Punctuation is named as you move over it, so a pasted link reads as "h t t p s
 colon slash slash" rather than falling silent on every symbol. The names are
@@ -212,26 +215,6 @@ noticed until it has been saved. And configuration profiles are not read, only
 your main settings, so a profile that changes typing echo for Hearthstone
 specifically will not be picked up.
 
-None of this applies to the native text box below. That really is an edit
-control, so NVDA handles the echo itself, under its own settings, correctly.
-
-### A real text box, if you want to try it
-
-There is one way to get a box your screen reader genuinely owns, and it is in
-here behind `UseNativeTextBox` in the config. Turn it on and Alt+M opens an
-actual Windows edit control over the game and gives it the keyboard focus. NVDA
-then reads it the way it reads any edit field anywhere: its own caret reporting,
-its own punctuation and keyboard echo settings, the review cursor, and clipboard
-keys that work because Windows implements them rather than because this plugin
-reimplemented them.
-
-It is a child window of the Hearthstone window, so it takes the focus without
-deactivating the game and a full screen client will not minimise underneath you.
-
-It is still a foreign control inside a game that does not expect one, which is
-why it is off by default. If the control cannot be created the plugin falls
-back to its own editor without a word, and Escape closes the box either way.
-Please say how you get on with it.
 
 ## Configuration
 
@@ -254,9 +237,6 @@ After the first run, settings live in
   or NVDA is not running.
 - `EchoTypedWords`, default true. Speak each word as you finish it. Same
   proviso.
-- `UseNativeTextBox`, default false. Experimental. Replies open in a real
-  Windows edit control that your screen reader reads directly, instead of the
-  plugin's own editor. See "A real text box, if you want to try it" above.
 
 ## Known limitations
 
@@ -264,10 +244,6 @@ After the first run, settings live in
   Tolk API but have never been exercised against real hardware, because the
   author does not have a display. They are built to fail quietly rather than
   break anything else. Feedback very welcome.
-- **The native text box is experimental.** `UseNativeTextBox` is off by default
-  because a Win32 control living inside a Unity game is unproven ground. It is
-  built to fail safely: if the control will not open you get the plugin's own
-  editor instead, and Escape always closes the reply box whichever one is up.
 - HS Message cannot open a conversation with somebody you have not spoken to
   this session. Send that first message the usual way through the social menu,
   and Alt+M handles the rest of the conversation from then on.

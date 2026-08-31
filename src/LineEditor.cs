@@ -129,7 +129,12 @@ namespace HSMessage
 
             _anchor = 0;
             _caret = _text.Length;
-            return "Selected " + Describe(Selected());
+
+            // Read the whole thing back rather than counting it. Describe caps
+            // long runs at a character count, which is right when a selection
+            // is being built up a key at a time and you only want to know it
+            // grew. Selecting everything is a request to hear everything.
+            return "Selected " + _text;
         }
 
         // ----------------------------------------------------------- editing

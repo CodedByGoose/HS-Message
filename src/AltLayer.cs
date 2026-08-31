@@ -27,9 +27,31 @@ namespace HSMessage
         private static readonly HashSet<KeyCode> Consumed = new HashSet<KeyCode>();
         private static readonly List<KeyCode> Releasing = new List<KeyCode>();
 
+        /// <summary>
+        /// Both Unity and Windows have to agree that Alt is down, and they are
+        /// each covering for a different way the other gets it wrong.
+        ///
+        /// Windows is asked because Unity's answer can be stale. Unity only
+        /// hears about keys through its own window, so if the focus leaves
+        /// while Alt is held -- Alt+Tab being the obvious way -- the release
+        /// lands elsewhere and Input.GetKey stays stuck on true for the rest of
+        /// the session. That strands the entire Alt layer: arrow keys keep
+        /// moving through conversations, and HSA stays suppressed.
+        ///
+        /// Unity is still asked first because Windows answers about the whole
+        /// machine, not this window. Somebody holding Alt in another
+        /// application while the game sits in the background should not be
+        /// driving anything in here.
+        /// </summary>
         internal static bool AltHeld
         {
-            get { return Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt); }
+            get
+            {
+                if (!Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
+                    return false;
+
+                return NativeKeys.AltDown();
+            }
         }
 
         /// <summary>
