@@ -97,7 +97,9 @@ Reading messages from the person you are currently on:
 Replying:
 
 - **Alt+R**, write a reply to the person you are currently on. Type, then press
-  Enter to send. **Escape** cancels.
+  Enter to send. **Escape** cancels. Anyone in the buffer can be replied to,
+  and a whisper in either direction is enough to put somebody there; for
+  somebody new, use Alt+N.
 - **Alt+N**, message any online friend, whether or not they have whispered you.
   Your online friends are read out as a list: arrow through it, or press a
   letter to jump to the next name starting with it, then press Enter to open
@@ -166,46 +168,37 @@ Reviewing everything the game has said, not just chat:
 That transcript deliberately does not move your review position when new speech
 arrives. It is the piece NVDA's speech history gets wrong for this use case.
 
-## About replying
+## Configuration
 
-Hearthstone Access never implemented chat input. `ChatMgr.HandleGUIInput`
-returns immediately with the comment "Chat is not implemented yet", so the usual
-route is to open the social menu with F4, find the person, and type into a field
-no screen reader can see, because there is no real edit control there to read.
+After the first run, settings live in
+`BepInEx\config\com.codedbygoose.hsmessage.cfg`.
 
-Alt+R skips all of that. It runs a line editor of its own, with a real caret and
-a real selection, and speaks the feedback itself, because nothing else will.
-While it is open, Hearthstone Access is told to stand down using its own
-`AllowTextInput` mechanism, the same one it uses for deck code entry, so no
-keystroke leaks through to the game.
+- `MaxMessagesPerConversation`, default 200
+- `LogToDisk`, default true. Appends every whisper to a dated text file under
+  `BepInEx\chat-logs`, so nothing is ever lost even if you close the client.
+- `LogDirectory`, blank means the default above
+- `BrailleIncomingMessages`, default false. Silently pushes incoming whispers to
+  a braille display as they arrive.
+- `CaptureAllSpeech`, default true. Powers the transcript keys.
+- `TranscriptSize`, default 300 lines
+- `FollowScreenReaderEcho`, default true. Take typing echo from NVDA's own
+  settings rather than from the two below. Explained just after this list.
+- `EchoTypedCharacters`, default false. Speak every character as you type a
+  reply. Accurate but chatty. Only used when `FollowScreenReaderEcho` is false,
+  or NVDA is not running.
+- `EchoTypedWords`, default true. Speak each word as you finish it. Same
+  proviso.
 
-Why the plugin has to do the talking: Unity exposes nothing at all to MSAA or UI
-Automation. There is no accessibility layer to plug into, so even a genuine
-Unity text field would be as silent to a screen reader as a bare string is.
-Hearthstone Access hits the same wall and answers it the same way. The editor
-here therefore copies NVDA's behaviour deliberately rather than inventing its
-own: arrowing speaks the character you land on, the position past the last
-character reads as "blank", word movement speaks the whole word.
+### The reply box follows your NVDA typing echo
 
-Two limits worth knowing:
-
-- Alt+R replies to people already in the buffer: the plugin learns who somebody
-  actually is from a whisper, and a whisper in either direction counts. For
-  somebody new, use Alt+N instead, which reads your online friends as a list
-  and needs no prior message. Once your message is sent they are in the buffer
-  like anyone else.
-- Typing feedback is spoken by the plugin rather than by your screen reader's
-  own edit box handling. It does follow your NVDA settings though, see below.
-  Caret movement is always spoken whatever those say, because that is
-  navigation rather than echo, and NVDA always speaks it too.
-
-### It follows your NVDA typing echo
-
-You should not have to set the same preference twice, so by default the reply
-box reads NVDA's own **Speak typed characters** and **Speak typed words**
-settings and matches them. Turn it off with `FollowScreenReaderEcho` if you
-would rather set the plugin's own `EchoTypedCharacters` and `EchoTypedWords` by
-hand.
+Typing feedback in the reply box is spoken by the plugin rather than by your
+screen reader's own edit box handling, and you should not have to set the same
+preference twice. So by default the box reads NVDA's own **Speak typed
+characters** and **Speak typed words** settings and matches them. Turn it off
+with `FollowScreenReaderEcho` if you would rather set the plugin's own
+`EchoTypedCharacters` and `EchoTypedWords` by hand. Caret movement is always
+spoken whatever these say, because that is navigation rather than echo, and
+NVDA always speaks it too.
 
 NVDA offers three states for each, and all three are honoured:
 
@@ -223,29 +216,6 @@ when you press NVDA+Control+C, so toggling echo mid-session with NVDA+2 is not
 noticed until it has been saved. And configuration profiles are not read, only
 your main settings, so a profile that changes typing echo for Hearthstone
 specifically will not be picked up.
-
-
-## Configuration
-
-After the first run, settings live in
-`BepInEx\config\com.codedbygoose.hsmessage.cfg`.
-
-- `MaxMessagesPerConversation`, default 200
-- `LogToDisk`, default true. Appends every whisper to a dated text file under
-  `BepInEx\chat-logs`, so nothing is ever lost even if you close the client.
-- `LogDirectory`, blank means the default above
-- `BrailleIncomingMessages`, default false. Silently pushes incoming whispers to
-  a braille display as they arrive.
-- `CaptureAllSpeech`, default true. Powers the transcript keys.
-- `TranscriptSize`, default 300 lines
-- `FollowScreenReaderEcho`, default true. Take typing echo from NVDA's own
-  settings rather than from the two below. See "It follows your NVDA typing
-  echo" above.
-- `EchoTypedCharacters`, default false. Speak every character as you type a
-  reply. Accurate but chatty. Only used when `FollowScreenReaderEcho` is false,
-  or NVDA is not running.
-- `EchoTypedWords`, default true. Speak each word as you finish it. Same
-  proviso.
 
 ## Known limitations
 
@@ -291,6 +261,16 @@ rebuilding every time Hearthstone or Hearthstone Access updates:
 Review speech goes straight to Tolk rather than through Hearthstone Access's
 speech queue. That is deliberate: anything in that queue is destroyed by the
 next keypress, including the keypress that asked for it.
+
+The reply box speaks its own feedback because nothing else could. Hearthstone
+Access never implemented chat input -- `ChatMgr.HandleGUIInput` returns
+immediately with the comment "Chat is not implemented yet" -- and Unity exposes
+nothing to MSAA or UI Automation, so even a genuine text field would be as
+silent to a screen reader as a bare string. The plugin therefore runs a line
+editor of its own and deliberately copies NVDA's edit field behaviour rather
+than inventing a dialect. While the box is open, Hearthstone Access is told to
+stand down through its own `AllowTextInput` mechanism, the same one it uses for
+deck code entry, so no keystroke leaks through to the game.
 
 If any hook cannot find its target it logs a clear error and is skipped. The
 game keeps working and you lose only that feature.
