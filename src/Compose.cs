@@ -94,6 +94,11 @@ namespace HSMessage
             _beganFrame = Time.frameCount;
             Active = true;
 
+            // AltLayer.Tick stops running while we are composing, so the Alt+M
+            // that got us here would otherwise sit in its consumed set forever
+            // and keep HSA suppressed after we finish.
+            AltLayer.ResetConsumed();
+
             SetHsaTextInput(true);
 
             Speech.SayInterruptible(
@@ -263,7 +268,26 @@ namespace HSMessage
             Active = false;
             _peerName = null;
             _peerPlayer = null;
+            _beganFrame = -1;
             SetHsaTextInput(false);
+
+            // Whatever we were holding open, let it go. Handing control back to
+            // HSA in a bad state makes the game unplayable.
+            AltLayer.ResetConsumed();
+        }
+
+        /// <summary>
+        /// A guaranteed way out.
+        ///
+        /// Typing arrives through OnGUI, but if those events ever stopped
+        /// reaching us the box could not be closed, and since composing
+        /// suppresses all of HSA's input that would lock up the game. Escape is
+        /// therefore also checked from Update, which runs unconditionally.
+        /// </summary>
+        internal static void UpdateFallback()
+        {
+            if (!Active) return;
+            if (Input.GetKeyDown(KeyCode.Escape)) Cancel();
         }
     }
 }

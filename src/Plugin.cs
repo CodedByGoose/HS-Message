@@ -99,8 +99,14 @@ namespace HSMessage
         {
             try
             {
-                // Composing owns the whole keyboard; its input arrives in OnGUI.
-                if (Compose.Active) return;
+                // Composing owns the whole keyboard; its typing arrives in
+                // OnGUI. Escape is still checked here so there is always a way
+                // out even if GUI events stop reaching us.
+                if (Compose.Active)
+                {
+                    Compose.UpdateFallback();
+                    return;
+                }
 
                 AltLayer.Tick();
             }

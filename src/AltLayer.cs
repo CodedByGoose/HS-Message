@@ -51,6 +51,18 @@ namespace HSMessage
             return AltHeld || Consumed.Count > 0;
         }
 
+        /// <summary>
+        /// Forget any keys we were holding suppression open for.
+        ///
+        /// Called around composing, because Tick does not run then, so nothing
+        /// would notice those keys being released.
+        /// </summary>
+        internal static void ResetConsumed()
+        {
+            Consumed.Clear();
+            Releasing.Clear();
+        }
+
         internal static void Tick()
         {
             // Deferred by one frame, so HSA never observes the key-up of
@@ -58,8 +70,15 @@ namespace HSMessage
             for (int i = 0; i < Releasing.Count; i++) Consumed.Remove(Releasing[i]);
             Releasing.Clear();
 
+            // Tested with GetKey rather than GetKeyUp deliberately. GetKeyUp is
+            // a single-frame edge, and an edge can be missed: alt-tabbing away,
+            // or any frame where this method does not run. A missed edge used to
+            // strand a key in here forever, and because a non-empty set
+            // suppresses HSA's entire input handler, that locked the player out
+            // of the game until they restarted it. Asking whether the key is
+            // still physically down cannot be missed.
             foreach (var key in Consumed)
-                if (Input.GetKeyUp(key)) Releasing.Add(key);
+                if (!Input.GetKey(key)) Releasing.Add(key);
 
             // Long readouts stop on any keypress, matching what HSA trains you
             // to expect.

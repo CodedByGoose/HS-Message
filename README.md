@@ -26,6 +26,10 @@ ask whether you are sure you want to run a file from the internet: choose Run.
 If it needs permission to write to the Hearthstone folder it will ask, and carry
 on by itself once you say yes.
 
+**Keep that file.** It is also the updater. It holds no version of its own: every
+time you run it, it fetches whatever the newest release is. So to update later,
+close Hearthstone and run the same file again. No need to download it afresh.
+
 ### One line in PowerShell
 
 If you would rather not download anything, open PowerShell and paste this in:
