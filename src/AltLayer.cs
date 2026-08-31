@@ -238,7 +238,8 @@ namespace HSMessage
             "Alt plus up and down, older and newer messages, including your own replies. " +
             "Alt plus left and right, switch between people. " +
             "Alt plus shift plus 1 through 9, jump straight to a person. " +
-            "Alt plus M, write a reply to this person. " +
+            "Alt plus M, write a reply to this person. The box edits like an " +
+            "ordinary text field: arrows, Home and End, Control plus V to paste. " +
             "Alt plus S, summary of unread. " +
             "Alt plus Home and End, first and last message. " +
             "Alt plus space, newest unread message. " +

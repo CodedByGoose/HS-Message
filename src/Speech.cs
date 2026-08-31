@@ -25,6 +25,7 @@ namespace HSMessage
         private static MethodInfo _braille;  // Braille(string)
         private static MethodInfo _silence;  // Silence()
         private static MethodInfo _hasBraille;
+        private static MethodInfo _detect;   // DetectScreenReader()
 
         private static ManualLogSource Log => Plugin.Log;
 
@@ -67,11 +68,37 @@ namespace HSMessage
             _braille = tolk.GetMethod("Braille", new[] { typeof(string) });
             _silence = tolk.GetMethod("Silence", Type.EmptyTypes);
             _hasBraille = tolk.GetMethod("HasBraille", Type.EmptyTypes);
+            _detect = tolk.GetMethod("DetectScreenReader", Type.EmptyTypes);
 
             if (_output == null)
                 Log.LogError("Found DavyKager.Tolk but not its Output method. Tolk API may have changed.");
             else
                 Log.LogInfo("Screen reader output wired up through Tolk.");
+        }
+
+
+        /// <summary>
+        /// The name of the screen reader Tolk is currently driving, such as
+        /// "NVDA" or "JAWS", or null if it cannot say.
+        ///
+        /// Worth preferring over hunting for a process: this is in-process,
+        /// needs no permission to inspect anybody else, and answers the
+        /// question actually being asked, which is not "is NVDA running" but
+        /// "is NVDA the screen reader speaking right now".
+        /// </summary>
+        internal static string DetectScreenReader()
+        {
+            Resolve();
+            if (_detect == null) return null;
+
+            try
+            {
+                return _detect.Invoke(null, null) as string;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>Speak immediately, cutting off whatever is in progress.</summary>

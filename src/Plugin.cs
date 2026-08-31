@@ -22,6 +22,8 @@ namespace HSMessage
         internal static ConfigEntry<int> TranscriptSize;
         internal static ConfigEntry<bool> EchoTypedCharacters;
         internal static ConfigEntry<bool> EchoTypedWords;
+        internal static ConfigEntry<bool> UseNativeTextBox;
+        internal static ConfigEntry<bool> FollowScreenReaderEcho;
 
         private void Awake()
         {
@@ -55,15 +57,35 @@ namespace HSMessage
                 "Transcript", "TranscriptSize", 300,
                 "How many spoken lines to keep.");
 
+            FollowScreenReaderEcho = Config.Bind(
+                "Replying", "FollowScreenReaderEcho", true,
+                "Take typing echo from NVDA's own Speak Typed Characters and Speak Typed Words " +
+                "settings, rather than from the two below. Set NVDA once and the reply box " +
+                "matches it. If NVDA is set to speak in every window it is already echoing this " +
+                "box itself, so the plugin stays quiet rather than saying everything twice. " +
+                "Falls back to the settings below when NVDA is not running or its settings " +
+                "cannot be read. NVDA only writes them to disk when it exits or when you press " +
+                "NVDA+Control+C, so a change made with NVDA+2 is not seen until it is saved.");
+
             EchoTypedCharacters = Config.Bind(
                 "Replying", "EchoTypedCharacters", false,
                 "Speak every character as you type a reply. Accurate but chatty. " +
                 "There is no real edit control for a screen reader to read, so this " +
-                "plugin has to provide the feedback itself.");
+                "plugin has to provide the feedback itself. Ignored unless " +
+                "FollowScreenReaderEcho is false or NVDA's settings cannot be read.");
 
             EchoTypedWords = Config.Bind(
                 "Replying", "EchoTypedWords", true,
-                "Speak each word as you finish it with a space.");
+                "Speak each word as you finish it. Same proviso as above.");
+
+            UseNativeTextBox = Config.Bind(
+                "Replying", "UseNativeTextBox", false,
+                "EXPERIMENTAL. Open a real Windows edit control for replies instead of the " +
+                "plugin's own line editor. Your screen reader then reads it directly, with its " +
+                "own caret reporting, review cursor and punctuation settings, and the clipboard " +
+                "keys are Windows' rather than ours. Unproven inside Hearthstone: if the control " +
+                "cannot be created the plugin falls back to its own editor, and Escape always " +
+                "closes the box either way.");
 
             try
             {

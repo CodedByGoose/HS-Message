@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
@@ -12,20 +11,33 @@ namespace HSMessage
     ///
     /// Hearthstone Access never implemented chat input -- ChatMgr.HandleGUIInput
     /// returns immediately with "Chat is not implemented yet" -- so there is no
-    /// real edit control anywhere for a screen reader to find. We therefore run
-    /// our own tiny line editor: characters come from Input.inputString, and we
-    /// speak the feedback ourselves through Tolk, because nothing else will.
+    /// real edit control anywhere for a screen reader to find.
     ///
-    /// While composing we call HSA's own AllowTextInput(), which is the
-    /// sanctioned way to tell it to keep its hands off the keyboard. It is the
-    /// same mechanism HSA uses for deck code entry.
+    /// There are two ways to fill that gap, and this class can use either.
+    ///
+    /// By default it drives <see cref="LineEditor"/>: our own caret, our own
+    /// selection, our own announcements through Tolk. It always works, because
+    /// it depends on nothing but Unity delivering key events.
+    ///
+    /// Set UseNativeTextBox and it instead opens a genuine Windows edit control
+    /// over the game, see <see cref="NativeEdit"/>, which your screen reader
+    /// reads directly and natively. Better when it works; unproven, so opt-in.
+    /// If it fails to open we fall back to the line editor without comment.
+    ///
+    /// Either way we call HSA's own AllowTextInput() while composing, which is
+    /// the sanctioned way to tell it to keep its hands off the keyboard. It is
+    /// the same mechanism HSA uses for deck code entry.
     /// </summary>
     internal static class Compose
     {
-        private static readonly StringBuilder Buffer = new StringBuilder();
+        private static readonly LineEditor Editor = new LineEditor();
+
         private static string _peerName;
         private static object _peerPlayer;
         private static int _beganFrame = -1;
+
+        /// <summary>True while the real Windows control is the one taking keys.</summary>
+        private static bool _native;
 
         internal static bool Active { get; private set; }
 
@@ -88,11 +100,13 @@ namespace HSMessage
                 return;
             }
 
-            Buffer.Length = 0;
+            Editor.Clear();
             _peerName = peer;
             _peerPlayer = player;
             _beganFrame = Time.frameCount;
             Active = true;
+
+            DecideEcho();
 
             // AltLayer.Tick stops running while we are composing, so the Alt+M
             // that got us here would otherwise sit in its consumed set forever
@@ -101,9 +115,23 @@ namespace HSMessage
 
             SetHsaTextInput(true);
 
-            Speech.SayInterruptible(
-                "Message to " + peer + ". Type, then Enter to send. " +
-                "F2 reads it back, Escape cancels.");
+            _native = Plugin.UseNativeTextBox.Value &&
+                      NativeEdit.TryOpen("Message to " + peer);
+
+            if (_native)
+            {
+                // Deliberately terse. The control already has focus, so the
+                // screen reader is about to describe it in its own words, and
+                // from here on every keystroke is Windows' business, not ours.
+                Speech.SayInterruptible(
+                    "Message to " + peer + ". Enter to send, Escape cancels.");
+            }
+            else
+            {
+                Speech.SayInterruptible(
+                    "Message to " + peer + ". Type, then Enter to send. " +
+                    "Arrows move, F2 reads it back, Escape cancels.");
+            }
         }
 
         private static void SetHsaTextInput(bool allow)
@@ -128,11 +156,13 @@ namespace HSMessage
         /// state, so punctuation and capitals arrive correctly rather than
         /// having to be reconstructed from raw key codes.
         ///
-        /// Called from Runtime.OnGUI.
+        /// Called from Runtime.OnGUI. Does nothing while the native control is
+        /// up, since Windows is handling those keys and acting on them twice
+        /// would double every character.
         /// </summary>
         internal static void HandleGuiEvent(Event e)
         {
-            if (!Active || e == null) return;
+            if (!Active || _native || e == null) return;
             if (e.type != EventType.KeyDown) return;
 
             // The keypress that opened the box is still in flight this frame.
@@ -144,6 +174,33 @@ namespace HSMessage
             // several European layouts.
             if (e.alt && !e.control) return;
 
+            // Not e.command as well: on Windows that is the Windows key, and
+            // Win+V already means something to the operating system.
+            bool ctrl = e.control && !e.alt;
+            bool shift = e.shift;
+
+            // Everything a normal edit box does with Control held. Paste is the
+            // one people miss most: a link copied from a browser was previously
+            // impossible to get in here.
+            if (ctrl)
+            {
+                switch (e.keyCode)
+                {
+                    case KeyCode.V: Speech.Say(Editor.Paste()); e.Use(); return;
+                    case KeyCode.C: Speech.Say(Editor.Copy()); e.Use(); return;
+                    case KeyCode.X: Speech.Say(Editor.Cut()); e.Use(); return;
+                    case KeyCode.A: Speech.Say(Editor.SelectAll()); e.Use(); return;
+
+                    case KeyCode.LeftArrow: Speech.Say(Editor.MoveWordLeft(shift)); e.Use(); return;
+                    case KeyCode.RightArrow: Speech.Say(Editor.MoveWordRight(shift)); e.Use(); return;
+
+                    case KeyCode.Backspace: Speech.Say(Editor.DeleteWordLeft()); e.Use(); return;
+                }
+
+                // Anything else with Control falls through: Control plus Home
+                // and End mean the same as plain Home and End on one line.
+            }
+
             switch (e.keyCode)
             {
                 case KeyCode.Escape:
@@ -154,13 +211,29 @@ namespace HSMessage
                     // Both are passed on because HSA treats them as one key:
                     // its CONFIRM binding accepts a keypad Enter release while
                     // matching on Return.
-                    Send(KeyCode.Return, KeyCode.KeypadEnter); e.Use(); return;
+                    Send(Editor.Text, KeyCode.Return, KeyCode.KeypadEnter); e.Use(); return;
 
                 case KeyCode.F2:
-                    ReadBack(); e.Use(); return;
+                    // Shift for where the caret is, plain for the whole line.
+                    Speech.SayInterruptible(shift ? Editor.DescribePosition() : Editor.ReadBack());
+                    e.Use(); return;
 
-                case KeyCode.Backspace:
-                    Backspace(); e.Use(); return;
+                case KeyCode.LeftArrow: Speech.Say(Editor.MoveLeft(shift)); e.Use(); return;
+                case KeyCode.RightArrow: Speech.Say(Editor.MoveRight(shift)); e.Use(); return;
+                case KeyCode.Home: Speech.Say(Editor.MoveHome(shift)); e.Use(); return;
+                case KeyCode.End: Speech.Say(Editor.MoveEnd(shift)); e.Use(); return;
+
+                case KeyCode.Backspace: Speech.Say(Editor.Backspace()); e.Use(); return;
+                case KeyCode.Delete: Speech.Say(Editor.Delete()); e.Use(); return;
+
+                // A single line edit ignores these. Swallowed rather than
+                // passed on, so they cannot reach the game behind us.
+                case KeyCode.UpArrow:
+                case KeyCode.DownArrow:
+                case KeyCode.PageUp:
+                case KeyCode.PageDown:
+                case KeyCode.Tab:
+                    e.Use(); return;
             }
 
             // Unity delivers the key code and the character as separate events,
@@ -168,75 +241,99 @@ namespace HSMessage
             char c = e.character;
             if (c == '\0' || char.IsControl(c)) return;
 
-            Buffer.Append(c);
+            bool replacedSelection = Editor.HasSelection;
+            Editor.Insert(c);
             e.Use();
 
-            if (Plugin.EchoTypedCharacters.Value)
+            // Typing over a selection is a bigger change than one character, so
+            // it is always confirmed, whatever the echo settings say.
+            if (replacedSelection)
             {
-                Speech.Say(SpeakableCharacter(c));
+                Speech.Say(Speakable.Character(c));
             }
-            else if (Plugin.EchoTypedWords.Value && c == ' ')
+            else if (_echoCharacters)
             {
-                var word = LastCompletedWord();
+                Speech.Say(Speakable.Character(c));
+            }
+            else if (_echoWords)
+            {
+                var word = Editor.WordBeforeCaret();
                 if (!string.IsNullOrEmpty(word)) Speech.Say(word);
             }
         }
 
-        private static string LastCompletedWord()
+        // -------------------------------------------------------------- echo
+
+        /// <summary>
+        /// Whether we speak characters and words as they are typed. Settled
+        /// once when the box opens rather than asked per keystroke, so a long
+        /// message cannot change its mind halfway through.
+        /// </summary>
+        private static bool _echoCharacters;
+        private static bool _echoWords;
+
+        private static void DecideEcho()
         {
-            // Buffer currently ends with the space that triggered us.
-            int end = Buffer.Length - 1;
-            if (end <= 0) return null;
-
-            int start = end - 1;
-            while (start >= 0 && Buffer[start] != ' ') start--;
-            start++;
-
-            if (end - start <= 0) return null;
-            return Buffer.ToString(start, end - start);
-        }
-
-        private static string SpeakableCharacter(char c)
-        {
-            if (c == ' ') return "space";
-            return c.ToString();
-        }
-
-        private static void Backspace()
-        {
-            if (Buffer.Length == 0)
+            if (!Plugin.FollowScreenReaderEcho.Value)
             {
-                Speech.Say("Blank.");
+                _echoCharacters = Plugin.EchoTypedCharacters.Value;
+                _echoWords = Plugin.EchoTypedWords.Value;
                 return;
             }
 
-            char removed = Buffer[Buffer.Length - 1];
-            Buffer.Length--;
-            Speech.Say(SpeakableCharacter(removed));
+            NvdaSettings.Refresh();
+
+            _echoCharacters = Follow(NvdaSettings.SpeakTypedCharacters, Plugin.EchoTypedCharacters.Value);
+            _echoWords = Follow(NvdaSettings.SpeakTypedWords, Plugin.EchoTypedWords.Value);
         }
 
-        private static void ReadBack()
+        /// <summary>
+        /// Turn one of NVDA's echo settings into a yes or no for us.
+        ///
+        /// The middle case is the ordinary one and the reason this is worth
+        /// doing at all. "Only in edit controls" means NVDA looks at what has
+        /// the focus, sees a Unity window rather than an edit field, and says
+        /// nothing. It cannot see our box, so we are the only thing that can
+        /// speak, and we do.
+        ///
+        /// "Always" is the case that has to be inverted, and it is easy to get
+        /// backwards. NVDA speaks typed characters in any window in that mode,
+        /// this one included, so it is already doing the job. Echoing as well
+        /// would say every character twice.
+        ///
+        /// None of this applies when the native control is up: that really is
+        /// an edit field, so NVDA handles both modes itself and correctly, and
+        /// this code is not reached.
+        /// </summary>
+        private static bool Follow(TypingEcho? nvda, bool fallback)
         {
-            Speech.SayInterruptible(
-                Buffer.Length == 0 ? "Blank." : Buffer.ToString());
+            if (nvda == null) return fallback;
+
+            switch (nvda.Value)
+            {
+                case TypingEcho.Off: return false;
+                case TypingEcho.EditControls: return true;
+                case TypingEcho.Always: return false;
+                default: return fallback;
+            }
         }
 
         // ------------------------------------------------------------ finish
 
         private static void Cancel(params KeyCode[] terminators)
         {
-            Buffer.Length = 0;
+            Editor.Clear();
             End(terminators);
             Speech.Say("Cancelled.");
         }
 
-        private static void Send(params KeyCode[] terminators)
+        private static void Send(string raw, params KeyCode[] terminators)
         {
-            var text = Buffer.ToString().Trim();
+            var text = (raw ?? string.Empty).Trim();
 
             if (text.Length == 0)
             {
-                Buffer.Length = 0;
+                Editor.Clear();
                 End(terminators);
                 Speech.Say("Nothing to send.");
                 return;
@@ -245,7 +342,7 @@ namespace HSMessage
             var peer = _peerName;
             var player = _peerPlayer;
 
-            Buffer.Length = 0;
+            Editor.Clear();
             End(terminators);
 
             bool sent = false;
@@ -278,6 +375,16 @@ namespace HSMessage
             _peerName = null;
             _peerPlayer = null;
             _beganFrame = -1;
+
+            // Close the native control first: it holds the keyboard focus, and
+            // handing back to HSA before Unity can even see keys again would
+            // leave the game unable to respond to anything.
+            if (_native)
+            {
+                NativeEdit.Close();
+                _native = false;
+            }
+
             SetHsaTextInput(false);
 
             // Whatever we were holding open, let it go. Handing control back to
@@ -289,17 +396,46 @@ namespace HSMessage
         }
 
         /// <summary>
-        /// A guaranteed way out.
+        /// A guaranteed way out, and the pump for the native control.
         ///
-        /// Typing arrives through OnGUI, but if those events ever stopped
-        /// reaching us the box could not be closed, and since composing
+        /// Typing normally arrives through OnGUI, but if those events ever
+        /// stopped reaching us the box could not be closed, and since composing
         /// suppresses all of HSA's input that would lock up the game. Escape is
-        /// therefore also checked from Update, which runs unconditionally.
+        /// therefore also checked from Update, which runs unconditionally, and
+        /// is checked in native mode too: if the focus ever slips off the edit
+        /// control back onto the game, this is the only thing still listening.
         /// </summary>
         internal static void UpdateFallback()
         {
             if (!Active) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) Cancel(KeyCode.Escape);
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                Cancel(KeyCode.Escape);
+                return;
+            }
+
+            if (!_native) return;
+
+            // The window disappearing under us is not recoverable, and leaving
+            // the keyboard captured would be far worse than losing a draft.
+            if (!NativeEdit.Tick())
+            {
+                Cancel();
+                return;
+            }
+
+            if (NativeEdit.Cancelled)
+            {
+                Cancel(KeyCode.Escape);
+                return;
+            }
+
+            if (NativeEdit.Submitted)
+            {
+                // Read while the control is still alive; End destroys it.
+                Send(NativeEdit.ReadText(), KeyCode.Return, KeyCode.KeypadEnter);
+            }
         }
     }
 }

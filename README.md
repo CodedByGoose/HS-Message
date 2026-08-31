@@ -88,8 +88,27 @@ Reading messages from the person you are currently on:
 Replying:
 
 - **Alt+M**, write a reply to the person you are currently on. Type, then press
-  Enter to send. **F2** reads back what you have typed so far, **Backspace**
-  deletes and speaks the character it removed, **Escape** cancels.
+  Enter to send. **Escape** cancels.
+
+Inside that box the usual editing keys all work, and behave the way they do in
+any other edit field:
+
+- **Left** and **Right** move a character at a time and speak the character you
+  land on. Past the last character reads as "blank", exactly as your screen
+  reader would say it.
+- **Ctrl+Left** and **Ctrl+Right** move a word at a time and speak the word.
+- **Home** and **End** go to the start and the end.
+- Hold **Shift** with any of those to select. **Ctrl+A** selects everything.
+- **Backspace** and **Delete** remove a character and speak it.
+  **Ctrl+Backspace** removes the word behind the caret.
+- **Ctrl+V** pastes, **Ctrl+C** copies, **Ctrl+X** cuts. Pasting is the point:
+  a link copied from your browser can go straight into a whisper. Line breaks
+  in what you paste become spaces, since a whisper is a single line.
+- **F2** reads the whole message back. **Shift+F2** says where the caret is.
+
+Punctuation is named as you move over it, so a pasted link reads as "h t t p s
+colon slash slash" rather than falling silent on every symbol. The names are
+NVDA's own, so nothing new to learn.
 
 Moving between people:
 
@@ -138,19 +157,75 @@ returns immediately with the comment "Chat is not implemented yet", so the usual
 route is to open the social menu with F4, find the person, and type into a field
 no screen reader can see, because there is no real edit control there to read.
 
-Alt+M skips all of that. It runs a small line editor of its own and speaks the
-feedback itself, because nothing else will. While it is open, Hearthstone Access
-is told to stand down using its own `AllowTextInput` mechanism, the same one it
-uses for deck code entry, so no keystroke leaks through to the game.
+Alt+M skips all of that. It runs a line editor of its own, with a real caret and
+a real selection, and speaks the feedback itself, because nothing else will.
+While it is open, Hearthstone Access is told to stand down using its own
+`AllowTextInput` mechanism, the same one it uses for deck code entry, so no
+keystroke leaks through to the game.
+
+Why the plugin has to do the talking: Unity exposes nothing at all to MSAA or UI
+Automation. There is no accessibility layer to plug into, so even a genuine
+Unity text field would be as silent to a screen reader as a bare string is.
+Hearthstone Access hits the same wall and answers it the same way. The editor
+here therefore copies NVDA's behaviour deliberately rather than inventing its
+own: arrowing speaks the character you land on, the position past the last
+character reads as "blank", word movement speaks the whole word.
 
 Two limits worth knowing:
 
 - You can only reply to people already in the buffer. The plugin learns who
   someone actually is from the whisper itself, so it cannot start a brand new
   conversation with somebody who has not messaged you.
-- Typing feedback is spoken by the plugin, not by your screen reader's own edit
-  box handling, so it does not follow your NVDA keyboard echo settings. Use
-  `EchoTypedCharacters` and `EchoTypedWords` in the config to set it.
+- Typing feedback is spoken by the plugin rather than by your screen reader's
+  own edit box handling. It does follow your NVDA settings though, see below.
+  Caret movement is always spoken whatever those say, because that is
+  navigation rather than echo, and NVDA always speaks it too.
+
+### It follows your NVDA typing echo
+
+You should not have to set the same preference twice, so by default the reply
+box reads NVDA's own **Speak typed characters** and **Speak typed words**
+settings and matches them. Turn it off with `FollowScreenReaderEcho` if you
+would rather set the plugin's own `EchoTypedCharacters` and `EchoTypedWords` by
+hand.
+
+NVDA offers three states for each, and all three are honoured:
+
+- **Off**, and the box says nothing as you type.
+- **Only in edit controls**, and the box speaks. This is the case worth
+  explaining. NVDA looks at what has the focus, sees a Unity window rather than
+  an edit field, and stays quiet, so the plugin is the only thing that can
+  speak, and it does.
+- **Always**, and the box stays quiet, because NVDA speaks typed characters in
+  every window in that mode including this one. It is already doing the job,
+  and echoing as well would say every character twice.
+
+Two things to know. NVDA only writes these settings to disk when it exits, or
+when you press NVDA+Control+C, so toggling echo mid-session with NVDA+2 is not
+noticed until it has been saved. And configuration profiles are not read, only
+your main settings, so a profile that changes typing echo for Hearthstone
+specifically will not be picked up.
+
+None of this applies to the native text box below. That really is an edit
+control, so NVDA handles the echo itself, under its own settings, correctly.
+
+### A real text box, if you want to try it
+
+There is one way to get a box your screen reader genuinely owns, and it is in
+here behind `UseNativeTextBox` in the config. Turn it on and Alt+M opens an
+actual Windows edit control over the game and gives it the keyboard focus. NVDA
+then reads it the way it reads any edit field anywhere: its own caret reporting,
+its own punctuation and keyboard echo settings, the review cursor, and clipboard
+keys that work because Windows implements them rather than because this plugin
+reimplemented them.
+
+It is a child window of the Hearthstone window, so it takes the focus without
+deactivating the game and a full screen client will not minimise underneath you.
+
+It is still a foreign control inside a game that does not expect one, which is
+why it is off by default. If the control cannot be created the plugin falls
+back to its own editor without a word, and Escape closes the box either way.
+Please say how you get on with it.
 
 ## Configuration
 
@@ -165,9 +240,17 @@ After the first run, settings live in
   a braille display as they arrive.
 - `CaptureAllSpeech`, default true. Powers the transcript keys.
 - `TranscriptSize`, default 300 lines
+- `FollowScreenReaderEcho`, default true. Take typing echo from NVDA's own
+  settings rather than from the two below. See "It follows your NVDA typing
+  echo" above.
 - `EchoTypedCharacters`, default false. Speak every character as you type a
-  reply. Accurate but chatty.
-- `EchoTypedWords`, default true. Speak each word as you finish it with a space.
+  reply. Accurate but chatty. Only used when `FollowScreenReaderEcho` is false,
+  or NVDA is not running.
+- `EchoTypedWords`, default true. Speak each word as you finish it. Same
+  proviso.
+- `UseNativeTextBox`, default false. Experimental. Replies open in a real
+  Windows edit control that your screen reader reads directly, instead of the
+  plugin's own editor. See "A real text box, if you want to try it" above.
 
 ## Known limitations
 
@@ -175,6 +258,10 @@ After the first run, settings live in
   Tolk API but have never been exercised against real hardware, because the
   author does not have a display. They are built to fail quietly rather than
   break anything else. Feedback very welcome.
+- **The native text box is experimental.** `UseNativeTextBox` is off by default
+  because a Win32 control living inside a Unity game is unproven ground. It is
+  built to fail safely: if the control will not open you get the plugin's own
+  editor instead, and Escape always closes the reply box whichever one is up.
 - You cannot start a new conversation, only reply to people who have messaged
   you this session.
 - Tested on Windows against Hearthstone 36.4 and Unity 6. Other versions are
